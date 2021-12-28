@@ -99,24 +99,32 @@ def displayFrame(name, frame, detections):
     # Show the frame
     cv2.imshow(name, frame)
 
+def parse_dets(detections):
+
+    for det in detections:
+        print(f"({det.xmin:0.2f} {det.ymin:0.2f})  ({det.xmax:0.2f} {det.ymax:0.2f}) ")
+
+        if det.confidence > 0.9:
+            print("good")
+
 
 def mainloop():
-
+    
     pipeline = make_pipeline()
-    # Connect to device and start pipeline
-    with dai.Device(pipeline) as device:
 
-        # Output queues will be used to get the rgb frames and nn data from the outputs defined above
+    with dai.Device(pipeline) as device:
+        
         qRgb = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         qDet = device.getOutputQueue(name="nn", maxSize=4, blocking=False)
 
         frame = None
+        counter = 0
         detections = []
         startTime = time.monotonic()
-        counter = 0
-        color2 = (255, 255, 255)
+        WHITE = (255, 255, 255)
 
         while True:
+
             inRgb = qRgb.get()
             inDet = qDet.get()
 
@@ -128,12 +136,12 @@ def mainloop():
                     (2, frame.shape[0] - 4),
                     cv2.FONT_HERSHEY_TRIPLEX,
                     0.4,
-                    color2,
+                    WHITE,
                 )
 
             if inDet is not None:
                 detections = inDet.detections
-                print(detections)
+                parse_dets(detections)
                 counter += 1
 
             # If the frame is available, draw bounding boxes on it and show the frame
