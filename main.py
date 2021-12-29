@@ -90,8 +90,6 @@ def parse_dets(detections, confidence_thr=0.8):
         if d.confidence > confidence_thr
     ]
 
-    # bboxes = np.rint(bboxes).astype(int)
-
     return labels, bboxes
 
 
