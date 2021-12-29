@@ -3,6 +3,7 @@ import io
 import time
 from typing import List
 
+import cv2
 import numpy as np
 import requests
 from PIL import Image
@@ -17,31 +18,22 @@ class RoboflowUploader:
 
         self._dataset_name = dataset_name
         self._api_key = api_key
-
-    def upload(self, frame: np.ndarray, labels: list, bboxes: list, fname: str):
-        # Uploads `frame` as an image to Roboflow and saves it under `fname`.jpg
-        # Then, upload annotations  with corresponding `bboxes` and `frame`
-
-        # Upload image frame. Retreive Roboflow's image_id
-        img_id = self.upload_image(frame, frame)
-
-        print(f"fname: {fname} labels: {labels}, bboxes: {bboxes}")
-
-        # Annotate
-        self.upload_annotation(img_id, fname=fname, labels=labels, bboxes=bboxes)
-
+        
     def upload_image(self, arr: np.ndarray, fname: str):
-        # Uploads an `arr`, returns Roboflow's image id
+        # Uploads an `arr`, returns Roboflow's image id 
+
+        # BGR -> RGB
+        arr = cv2.cvtColor(arr, cv2.COLOR_BGR2RGB)
 
         # Load Image with PIL
         image = Image.fromarray(arr)
 
         # JPEG encoding
-        buffered = io.BytesIO()
-        image.save(buffered, quality=90, format="JPEG")
+        buf = io.BytesIO()
+        image.save(buf, quality=90, format="JPEG")
 
         # Base 64 Encode
-        img_str = base64.b64encode(buffered.getvalue())
+        img_str = base64.b64encode(buf.getvalue())
         img_str = img_str.decode("ascii")
 
         # Construct the URL

@@ -88,7 +88,10 @@ def frameNorm(frame, bbox):
     return (np.clip(np.array(bbox), 0, 1) * normVals).astype(int)
 
 
-def displayFrame(name, frame, detections):
+def overlay_boxes(frame, detections):
+    
+    frame = frame.copy()
+
     color = (255, 0, 0)
     for detection in detections:
         bbox = frameNorm(
@@ -111,9 +114,19 @@ def displayFrame(name, frame, detections):
             color,
         )
         cv2.rectangle(frame, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color, 2)
-    # Show the frame
-    cv2.imshow(name, frame)
 
+    return frame
+
+
+def upload_all(frame: np.ndarray, labels: list, bboxes: list, fname: str):
+    # Uploads `frame` as an image to Roboflow and saves it under `fname`.jpg
+    # Then, upload annotations  with corresponding `bboxes` and `frame`
+
+    # Upload image frame. Retreive Roboflow's image_id
+    img_id = uploader.upload_image(frame, fname)
+
+    # Annotate the image we just uploaded
+    uploader.upload_annotation(img_id, fname=fname, labels=labels, bboxes=bboxes)
 
 def mainloop():
 
@@ -134,40 +147,30 @@ def mainloop():
 
             inRgb = qRgb.get()
             inDet = qDet.get()
+            
+            if inRgb is None or inDet is None:
+                continue # queue not ready, continue
 
-            if inRgb is not None:
-                frame = inRgb.getCvFrame()
-                cv2.putText(
+            frame = inRgb.getCvFrame()
+            detections = inDet.detections
+
+            # Display results
+            frame_with_boxes = overlay_boxes(frame, detections)
+            cv2.imshow("Roboflow Demo", frame_with_boxes)
+
+            # User input
+            key = cv2.waitKey(1)
+            if key == ord('q'):
+                exit()
+            elif key == 13:
+                # If enter pressed, upload to Roboflow
+                labels, bboxes = parse_dets(detections, confidence_thr=0.9)
+                upload_all(
                     frame,
-                    "NN fps: {:.2f}".format(counter / (time.monotonic() - startTime)),
-                    (2, frame.shape[0] - 4),
-                    cv2.FONT_HERSHEY_TRIPLEX,
-                    0.4,
-                    WHITE,
+                    labels,
+                    bboxes,
+                    fname=int(1000 * time.time())
                 )
-
-            if inDet is not None:
-                detections = inDet.detections
-                labels, bboxes = parse_dets(detections, confidence_thr=0)
-
-            # If the frame is available, draw bounding boxes on it and show the frame
-            if frame is not None:
-
-                fname = int(1000 * time.time())
-
-                # uploader.upload(
-                #     frame,
-                #     ["helmet"] * len(bboxes),
-                #     bboxes,
-                #     fname
-                # )
-                img_id = uploader.upload_image(frame, fname)
-
-                # Annotate
-                uploader.upload_annotation(img_id, fname, labels, bboxes)
-
-            if cv2.waitKey(1) == ord("q"):
-                break
 
 
 if __name__ == "__main__":
