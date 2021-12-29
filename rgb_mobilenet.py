@@ -1,5 +1,6 @@
 import time
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 
 import cv2
 import depthai as dai
@@ -90,9 +91,10 @@ def frameNorm(frame, bbox):
 
 def overlay_boxes(frame, detections):
 
+    # Overlay on a copy of image to keep the original
     frame = frame.copy()
+    BLUE = (255, 0, 0)
 
-    color = (255, 0, 0)
     for detection in detections:
         bbox = frameNorm(
             frame, (detection.xmin, detection.ymin, detection.xmax, detection.ymax)
@@ -103,7 +105,7 @@ def overlay_boxes(frame, detections):
             (bbox[0] + 10, bbox[1] + 20),
             cv2.FONT_HERSHEY_TRIPLEX,
             0.5,
-            color,
+            BLUE,
         )
         cv2.putText(
             frame,
@@ -111,16 +113,18 @@ def overlay_boxes(frame, detections):
             (bbox[0] + 10, bbox[1] + 40),
             cv2.FONT_HERSHEY_TRIPLEX,
             0.5,
-            color,
+            BLUE,
         )
-        cv2.rectangle(frame, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color, 2)
+        cv2.rectangle(frame, (bbox[0], bbox[1]), (bbox[2], bbox[3]), BLUE, 2)
 
     return frame
 
 
-def upload_all(frame: np.ndarray, labels: list, bboxes: list, fname: str):
-    # Uploads `frame` as an image to Roboflow and saves it under `fname`.jpg
-    # Then, upload annotations  with corresponding `bboxes` and `frame`
+def upload_all(uploader, frame: np.ndarray, labels: list, bboxes: list, fname: str):
+    """
+    Uploads `frame` as an image to Roboflow and saves it under `fname`.jpg
+    Then, upload annotations  with corresponding `bboxes` and `frame`
+    """
 
     # Upload image frame. Retreive Roboflow's image_id
     img_id = uploader.upload_image(frame, fname)
@@ -136,10 +140,15 @@ if __name__ == "__main__":
     detections = []
     WHITE = (255, 255, 255)
 
+    # Wrapper around Roboflow upload/annotate API
     uploader = RoboflowUploader(
         dataset_name="oak-dataset2", api_key="vkIkZac3CXvp0RZ31B3f"
     )
 
+    # Executor to handle uploads asynchronously
+    executor = ThreadPoolExecutor(max_workers=40)
+
+    # DAI pipeline
     pipeline = make_pipeline()
 
     with dai.Device(pipeline) as device:
@@ -152,8 +161,9 @@ if __name__ == "__main__":
             inRgb = qRgb.get()
             inDet = qDet.get()
 
+            # If queue not ready, skip iteration
             if inRgb is None or inDet is None:
-                continue  # queue not ready, skip iteration
+                continue
 
             frame = inRgb.getCvFrame()
             detections = inDet.detections
@@ -163,11 +173,15 @@ if __name__ == "__main__":
             cv2.imshow("Roboflow Demo", frame_with_boxes)
 
             # Handle user input
-            # Enter -> upload to Roboflow
-            # q -> exit
             key = cv2.waitKey(1)
+
             if key == ord("q"):
+                # q -> exit
                 exit()
             elif key == 13:
+                # Enter -> upload to Roboflow
                 labels, bboxes = parse_dets(detections, confidence_thr=0.9)
-                upload_all(frame, labels, bboxes, fname=int(1000 * time.time()))
+
+                executor.submit(
+                    upload_all, uploader, frame, labels, bboxes, int(1000 * time.time())
+                )
