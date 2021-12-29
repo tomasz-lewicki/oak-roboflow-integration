@@ -1,4 +1,5 @@
 import time
+import json
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
@@ -6,7 +7,7 @@ import cv2
 import depthai as dai
 import numpy as np
 
-from roboflow import RoboflowUploader
+from roboflow import RoboflowUploader 
 
 BLOB_PATH = "mobilenet-ssd_openvino_2021.4_6shave.blob"
 LABELS = [
@@ -66,8 +67,19 @@ def make_pipeline():
 
     return pipeline
 
+def get_config():
 
-def parse_dets(detections, confidence_thr=0.9):
+    with open('config.json') as f:
+        config = json.loads(f.read())
+
+    UPLOAD_THR = config["upload_threshold"]
+    DATASET = config["dataset"]
+    API_KEY = config["api_key"]
+
+    return (DATASET, API_KEY, UPLOAD_THR)
+
+
+def parse_dets(detections, confidence_thr=0.8):
 
     labels = [LABELS[d.label] for d in detections if d.confidence > confidence_thr]
 
@@ -135,6 +147,9 @@ def upload_all(uploader, frame: np.ndarray, labels: list, bboxes: list, fname: s
 
 if __name__ == "__main__":
 
+    # Parse config
+    (DATASET, API_KEY, UPLOAD_THR) = get_config()
+
     # Initialize variables
     frame = None
     detections = []
@@ -142,7 +157,8 @@ if __name__ == "__main__":
 
     # Wrapper around Roboflow upload/annotate API
     uploader = RoboflowUploader(
-        dataset_name="oak-dataset2", api_key="vkIkZac3CXvp0RZ31B3f"
+        dataset_name=DATASET,
+        api_key=API_KEY
     )
 
     # Executor to handle uploads asynchronously
@@ -180,8 +196,8 @@ if __name__ == "__main__":
                 exit()
             elif key == 13:
                 # Enter -> upload to Roboflow
-                labels, bboxes = parse_dets(detections, confidence_thr=0.9)
-
+                labels, bboxes = parse_dets(detections, confidence_thr=UPLOAD_THR)
+                print("Uploading grabbed frame!")
                 executor.submit(
                     upload_all, uploader, frame, labels, bboxes, int(1000 * time.time())
                 )
