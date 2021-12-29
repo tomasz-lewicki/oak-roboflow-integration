@@ -1,6 +1,7 @@
 import base64
 import io
 import time
+from typing import List
 
 import numpy as np
 import requests
@@ -53,13 +54,14 @@ class RoboflowUploader:
         return r.json()["id"]
 
 
-    def upload_annotation(self, image_id, fname) -> bool:
+    def upload_annotation(self, image_id, fname, classes: List[str], bboxes: List[List[int]]) -> bool:
         # Uploads a VOC annotation string for given `image_id`
         # The annotation will be stored under `fname.xml`
         # Returns `True` if upload succeeded, `False` otherwise
 
         annotation_str = make_voc_annotations(
-            ["helmet", "helmet"], [[179, 85, 231, 144], [112, 145, 135, 175]]
+            classes,
+            bboxes
         )
 
         upload_url = "".join(
@@ -88,11 +90,20 @@ if __name__ == "__main__":
     unique_id = int(1000 * time.time())
 
     uploader = RoboflowUploader(
-        dataset_name="oak-d-dataset",
+        dataset_name="oak-dataset",
         api_key="vkIkZac3CXvp0RZ31B3f"
     )
 
     start = time.perf_counter()
     img_id = uploader.upload_image(arr, unique_id)
-    uploader.upload_annotation(img_id, unique_id)
+
+    uploader.upload_annotation(
+        img_id,
+        unique_id,
+        ["helmet", "helmet"],
+        [
+            [179, 85, 231, 144],
+            [112, 145, 135, 175]
+        ]
+    )
     print(time.perf_counter() - start)
