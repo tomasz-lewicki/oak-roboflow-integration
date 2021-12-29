@@ -18,9 +18,9 @@ class RoboflowUploader:
 
         self._dataset_name = dataset_name
         self._api_key = api_key
-        
+
     def upload_image(self, arr: np.ndarray, fname: str):
-        # Uploads an `arr`, returns Roboflow's image id 
+        # Uploads an `arr`, returns Roboflow's image id
 
         # BGR -> RGB
         arr = cv2.cvtColor(arr, cv2.COLOR_BGR2RGB)

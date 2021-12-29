@@ -89,7 +89,7 @@ def frameNorm(frame, bbox):
 
 
 def overlay_boxes(frame, detections):
-    
+
     frame = frame.copy()
 
     color = (255, 0, 0)
@@ -128,7 +128,17 @@ def upload_all(frame: np.ndarray, labels: list, bboxes: list, fname: str):
     # Annotate the image we just uploaded
     uploader.upload_annotation(img_id, fname=fname, labels=labels, bboxes=bboxes)
 
-def mainloop():
+
+if __name__ == "__main__":
+
+    # Initialize variables
+    frame = None
+    detections = []
+    WHITE = (255, 255, 255)
+
+    uploader = RoboflowUploader(
+        dataset_name="oak-dataset2", api_key="vkIkZac3CXvp0RZ31B3f"
+    )
 
     pipeline = make_pipeline()
 
@@ -137,19 +147,13 @@ def mainloop():
         qRgb = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         qDet = device.getOutputQueue(name="nn", maxSize=4, blocking=False)
 
-        frame = None
-        counter = 0
-        detections = []
-        startTime = time.monotonic()
-        WHITE = (255, 255, 255)
-
         while True:
 
             inRgb = qRgb.get()
             inDet = qDet.get()
-            
+
             if inRgb is None or inDet is None:
-                continue # queue not ready, continue
+                continue  # queue not ready, skip iteration
 
             frame = inRgb.getCvFrame()
             detections = inDet.detections
@@ -158,25 +162,12 @@ def mainloop():
             frame_with_boxes = overlay_boxes(frame, detections)
             cv2.imshow("Roboflow Demo", frame_with_boxes)
 
-            # User input
+            # Handle user input
+            # Enter -> upload to Roboflow
+            # q -> exit
             key = cv2.waitKey(1)
-            if key == ord('q'):
+            if key == ord("q"):
                 exit()
             elif key == 13:
-                # If enter pressed, upload to Roboflow
                 labels, bboxes = parse_dets(detections, confidence_thr=0.9)
-                upload_all(
-                    frame,
-                    labels,
-                    bboxes,
-                    fname=int(1000 * time.time())
-                )
-
-
-if __name__ == "__main__":
-
-    uploader = RoboflowUploader(
-        dataset_name="oak-dataset2", api_key="vkIkZac3CXvp0RZ31B3f"
-    )
-
-    mainloop()
+                upload_all(frame, labels, bboxes, fname=int(1000 * time.time()))
