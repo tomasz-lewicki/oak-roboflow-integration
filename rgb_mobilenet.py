@@ -67,12 +67,18 @@ def make_pipeline():
 
 
 def parse_dets(detections, confidence_thr=0.9):
-    dets_out = [
+
+    labels = [LABELS[d.label] for d in detections if d.confidence > confidence_thr]
+
+    bboxes = [
         [300 * d.xmin, 300 * d.ymin, 300 * d.xmax, 300 * d.ymax]
         for d in detections
         if d.confidence > confidence_thr
     ]
-    return dets_out
+
+    # bboxes = np.rint(bboxes).astype(int)
+
+    return labels, bboxes
 
 
 # nn data (bounding box locations) are in <0..1> range - they need to be normalized with frame width/height
@@ -142,19 +148,23 @@ def mainloop():
 
             if inDet is not None:
                 detections = inDet.detections
-                bboxes = parse_dets(detections, confidence_thr=0)
-                print(bboxes)
+                labels, bboxes = parse_dets(detections, confidence_thr=0)
 
             # If the frame is available, draw bounding boxes on it and show the frame
             if frame is not None:
 
-                fname = "image" + str(int(1000 * time.time()))
+                fname = int(1000 * time.time())
 
-                # displayFrame("rgb", frame, detections)
-
+                # uploader.upload(
+                #     frame,
+                #     ["helmet"] * len(bboxes),
+                #     bboxes,
+                #     fname
+                # )
                 img_id = uploader.upload_image(frame, fname)
 
-                uploader.upload_annotation(img_id, fname, ["helmet", "helmet"], bboxes)
+                # Annotate
+                uploader.upload_annotation(img_id, fname, labels, bboxes)
 
             if cv2.waitKey(1) == ord("q"):
                 break
@@ -163,8 +173,7 @@ def mainloop():
 if __name__ == "__main__":
 
     uploader = RoboflowUploader(
-        dataset_name="oak-dataset",
-        api_key="vkIkZac3CXvp0RZ31B3f"
+        dataset_name="oak-dataset2", api_key="vkIkZac3CXvp0RZ31B3f"
     )
 
     mainloop()
