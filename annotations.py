@@ -2,7 +2,6 @@
 Creates VOC-style annotation string
 """
 
-
 def make_voc_annotations(cls_names, bboxes):
 
     HEADER = """
