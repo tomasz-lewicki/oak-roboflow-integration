@@ -1,10 +1,10 @@
-import requests
 import base64
 import io
 import time
-from PIL import Image
-import numpy as np
 
+import numpy as np
+import requests
+from PIL import Image
 
 from annotation import make_voc_annotations
 

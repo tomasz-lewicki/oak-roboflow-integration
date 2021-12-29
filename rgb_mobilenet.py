@@ -1,10 +1,9 @@
-#!/usr/bin/env python3
-
+import time
 from pathlib import Path
+
 import cv2
 import depthai as dai
 import numpy as np
-import time
 
 BLOB_PATH = "mobilenet-ssd_openvino_2021.4_6shave.blob"
 SYNC = True
@@ -99,6 +98,7 @@ def displayFrame(name, frame, detections):
     # Show the frame
     cv2.imshow(name, frame)
 
+
 def parse_dets(detections):
 
     for det in detections:
@@ -109,11 +109,11 @@ def parse_dets(detections):
 
 
 def mainloop():
-    
+
     pipeline = make_pipeline()
 
     with dai.Device(pipeline) as device:
-        
+
         qRgb = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         qDet = device.getOutputQueue(name="nn", maxSize=4, blocking=False)
 
