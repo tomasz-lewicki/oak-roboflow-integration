@@ -7,7 +7,7 @@ import cv2
 import depthai as dai
 import numpy as np
 
-from roboflow import RoboflowUploader 
+from roboflow import RoboflowUploader
 
 BLOB_PATH = "mobilenet-ssd_openvino_2021.4_6shave.blob"
 LABELS = [
@@ -67,9 +67,10 @@ def make_pipeline():
 
     return pipeline
 
+
 def get_config():
 
-    with open('config.json') as f:
+    with open("config.json") as f:
         config = json.loads(f.read())
 
     UPLOAD_THR = config["upload_threshold"]
@@ -156,10 +157,7 @@ if __name__ == "__main__":
     WHITE = (255, 255, 255)
 
     # Wrapper around Roboflow upload/annotate API
-    uploader = RoboflowUploader(
-        dataset_name=DATASET,
-        api_key=API_KEY
-    )
+    uploader = RoboflowUploader(dataset_name=DATASET, api_key=API_KEY)
 
     # Executor to handle uploads asynchronously
     executor = ThreadPoolExecutor(max_workers=40)
