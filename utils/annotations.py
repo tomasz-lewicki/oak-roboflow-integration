@@ -2,6 +2,7 @@
 Creates VOC-style annotation strings
 """
 
+
 def make_voc_annotations(cls_names, bboxes):
 
     HEADER = """
@@ -54,11 +55,7 @@ if __name__ == "__main__":
     # Test code
 
     anno = make_voc_annotations(
-        ["helmet", "helmet"], 
-        [
-            [179, 85, 231, 144],
-            [112, 145, 135, 175]
-        ]
+        ["helmet", "helmet"], [[179, 85, 231, 144], [112, 145, 135, 175]]
     )
 
     print(anno)

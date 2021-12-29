@@ -67,7 +67,7 @@ class RoboflowUploader:
 
     def upload_annotation(
         self, image_id, fname, labels: List[str], bboxes: List[List[int]]
-    ) -> bool:
+    ):
         # Uploads a VOC annotation string for given `image_id`
         # The annotation will be stored under `fname.xml`
         # Returns `True` if upload succeeded, `False` otherwise
@@ -95,7 +95,8 @@ class RoboflowUploader:
 
 if __name__ == "__main__":
 
-    # Generate random array
+    # Testing code:
+
     arr = (np.random.random((500, 500, 3)) * 255).astype(np.uint8)
     unique_id = int(1000 * time.time())
 
@@ -105,11 +106,12 @@ if __name__ == "__main__":
 
     start = time.perf_counter()
     img_id = uploader.upload_image(arr, unique_id)
-    # img_id = "x6aiM7ghBhrhxENWOmdX"
+
     uploader.upload_annotation(
         img_id,
         unique_id,
         ["helmet", "helmet"],
         [[179, 85, 231, 144], [112, 145, 135, 175]],
     )
+
     print(time.perf_counter() - start)
