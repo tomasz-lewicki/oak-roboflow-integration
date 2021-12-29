@@ -14,13 +14,13 @@ class Config:
     api_key = "vkIkZac3CXvp0RZ31B3f"
 
 
-def upload(unique_id):
-    # Load Image with PIL
+def upload_image(arr, fname):
+    # Uploads an image, returns Roboflow's image id 
 
-    arr = (np.random.random((500, 500, 3)) * 255).astype(np.uint8)
+    # Load Image with PIL
     image = Image.fromarray(arr)
 
-    # Convert to JPEG Buffer
+    # JPEG encoding
     buffered = io.BytesIO()
     image.save(buffered, quality=90, format="JPEG")
 
@@ -33,7 +33,7 @@ def upload(unique_id):
         [
             f"https://api.roboflow.com/dataset/{Config.dataset_name}/upload",
             f"?api_key={Config.api_key}",
-            f"&name={unique_id}.jpg",  # Epoch timestamp in miliseconds e.g. 1640677054993.jpg
+            f"&name={fname}.jpg",  # For example 1640677054993.jpg
             "&split=train",
         ]
     )
@@ -51,7 +51,7 @@ def upload(unique_id):
     return r.json()["id"]
 
 
-def annotate(image_id, unique_id):
+def annotate(image_id, fname):
     # keep track of image_id to associate with an image
     # time.sleep(10)
 
@@ -64,7 +64,7 @@ def annotate(image_id, unique_id):
         [
             f"https://api.roboflow.com/dataset/oak-d-dataset/annotate/{image_id}",
             f"?api_key=vkIkZac3CXvp0RZ31B3f",
-            f"&name={unique_id}.xml",
+            f"&name={fname}.xml",
         ]
     )
 
@@ -80,8 +80,11 @@ def annotate(image_id, unique_id):
 
 if __name__ == "__main__":
 
-    start = time.perf_counter()
+    # Generate random array
+    arr = (np.random.random((500, 500, 3)) * 255).astype(np.uint8)
     unique_id = int(1000 * time.time())
-    img_id = upload(unique_id)
+
+    start = time.perf_counter()
+    img_id = upload_image(arr, unique_id)
     annotate(img_id, unique_id)
     print(time.perf_counter() - start)
