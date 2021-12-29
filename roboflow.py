@@ -8,74 +8,77 @@ from PIL import Image
 
 from annotation import make_voc_annotations
 
+class RoboflowUploader:
+    # Thin wrapper over Roboflow's upload API
 
-class Config:
-    dataset_name = "oak-d-dataset"
-    api_key = "vkIkZac3CXvp0RZ31B3f"
+    def __init__(self, dataset_name: str, api_key: str):
+
+        self._dataset_name = dataset_name
+        self._api_key = api_key
+
+    def upload_image(self, arr: np.ndarray, fname: str):
+        # Uploads an `arr`, returns Roboflow's image id 
+
+        # Load Image with PIL
+        image = Image.fromarray(arr)
+
+        # JPEG encoding
+        buffered = io.BytesIO()
+        image.save(buffered, quality=90, format="JPEG")
+
+        # Base 64 Encode
+        img_str = base64.b64encode(buffered.getvalue())
+        img_str = img_str.decode("ascii")
+
+        # Construct the URL
+        upload_url = "".join(
+            [
+                f"https://api.roboflow.com/dataset/{self._dataset_name}/upload",
+                f"?api_key={self._api_key}",
+                f"&name={fname}.jpg",  # For example 1640677054993.jpg
+                "&split=train",
+            ]
+        )
+
+        # POST to the API
+        r = requests.post(
+            upload_url,
+            data=img_str,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+
+        # Output result
+        print(r.json())
+
+        return r.json()["id"]
 
 
-def upload_image(arr, fname):
-    # Uploads an image, returns Roboflow's image id 
+    def upload_annotation(self, image_id, fname) -> bool:
+        # Uploads a VOC annotation string for given `image_id`
+        # The annotation will be stored under `fname.xml`
+        # Returns `True` if upload succeeded, `False` otherwise
 
-    # Load Image with PIL
-    image = Image.fromarray(arr)
+        annotation_str = make_voc_annotations(
+            ["helmet", "helmet"], [[179, 85, 231, 144], [112, 145, 135, 175]]
+        )
 
-    # JPEG encoding
-    buffered = io.BytesIO()
-    image.save(buffered, quality=90, format="JPEG")
+        upload_url = "".join(
+            [
+                f"https://api.roboflow.com/dataset/{self._dataset_name}/annotate/{image_id}",
+                f"?api_key=vkIkZac3CXvp0RZ31B3f",
+                f"&name={fname}.xml",
+            ]
+        )
 
-    # Base 64 Encode
-    img_str = base64.b64encode(buffered.getvalue())
-    img_str = img_str.decode("ascii")
+        # POST to the API
+        r = requests.post(
+            upload_url, data=annotation_str, headers={"Content-Type": "text/plain"}
+        )
 
-    # Construct the URL
-    upload_url = "".join(
-        [
-            f"https://api.roboflow.com/dataset/{Config.dataset_name}/upload",
-            f"?api_key={Config.api_key}",
-            f"&name={fname}.jpg",  # For example 1640677054993.jpg
-            "&split=train",
-        ]
-    )
-
-    # POST to the API
-    r = requests.post(
-        upload_url,
-        data=img_str,
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-    )
-
-    # Output result
-    print(r.json())
-
-    return r.json()["id"]
+        # Output result
+        # is_success = (r.json().get('success') is True) and r.status_code
 
 
-def annotate(image_id, fname):
-    # keep track of image_id to associate with an image
-    # time.sleep(10)
-
-    annotation_str = make_voc_annotations(
-        ["helmet", "helmet"], [[179, 85, 231, 144], [112, 145, 135, 175]]
-    )
-
-    # Construct the URL
-    upload_url = "".join(
-        [
-            f"https://api.roboflow.com/dataset/oak-d-dataset/annotate/{image_id}",
-            f"?api_key=vkIkZac3CXvp0RZ31B3f",
-            f"&name={fname}.xml",
-        ]
-    )
-
-    print(upload_url)
-    # POST to the API
-    r = requests.post(
-        upload_url, data=annotation_str, headers={"Content-Type": "text/plain"}
-    )
-
-    # Output result
-    print(r.json())
 
 
 if __name__ == "__main__":
@@ -84,7 +87,12 @@ if __name__ == "__main__":
     arr = (np.random.random((500, 500, 3)) * 255).astype(np.uint8)
     unique_id = int(1000 * time.time())
 
+    uploader = RoboflowUploader(
+        dataset_name="oak-d-dataset",
+        api_key="vkIkZac3CXvp0RZ31B3f"
+    )
+
     start = time.perf_counter()
-    img_id = upload_image(arr, unique_id)
-    annotate(img_id, unique_id)
+    img_id = uploader.upload_image(arr, unique_id)
+    uploader.upload_annotation(img_id, unique_id)
     print(time.perf_counter() - start)
