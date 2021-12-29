@@ -1,8 +1,9 @@
 # OAK + Roboflow Demo
-An app creating [Roboflow](roboflow.com) dataset using detections from an OAK camera.
+An app creating [Roboflow](roboflow.com) dataset using detections from an [OAK-1](https://store.opencv.ai/products/oak-1) camera.
 
 ## Demo
 Live preview shows MobileNet SSD detections. After pressing `enter` the app grabs frames and uploads them to Roboflow dataset.
+
 https://user-images.githubusercontent.com/26127866/147658296-23be4621-d37a-4fd6-a169-3ea414ffa636.mp4
 
 ## Getting Started
