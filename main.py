@@ -7,9 +7,9 @@ import cv2
 import depthai as dai
 import numpy as np
 
-from roboflow import RoboflowUploader
+from utils.roboflow import RoboflowUploader
 
-BLOB_PATH = "mobilenet-ssd_openvino_2021.4_6shave.blob"
+BLOB_PATH = "models/mobilenet-ssd_openvino_2021.4_6shave.blob"
 LABELS = [
     "background",
     "aeroplane",
