@@ -20,7 +20,7 @@ pip3 install -r requirements.txt
 3. Setup Roboflow account
 - Get API key ([app.roboflow.com](https://app.roboflow.com/) -> `settings` -> `workspaces` -> `Roboflow API` -> Copy private API key)
 - Create new (empty) project at [app.roboflow.com](https://app.roboflow.com/) -> Copy project (a.k.a. dataset) name.
-- Paste to [config.json](https://github.com/tomek-l/oak-roboflow-integration/blob/master/config.json), similarly as in the example below.
+- Paste to [config.json](https://github.com/tomek-l/oak-roboflow-integration/blob/master/config.json), similarly to the example below:
 
 ```json
 {
@@ -34,3 +34,7 @@ pip3 install -r requirements.txt
 ```python
 python3 main.py
 ```
+
+- Press `enter` to capture and upload frames.
+- Press `q` to exit
+- Adjust `upload_threshold` to upload anntotations at a different threshold.
