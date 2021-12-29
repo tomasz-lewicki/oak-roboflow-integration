@@ -55,9 +55,6 @@ def annotate(image_id, unique_id):
     # keep track of image_id to associate with an image
     # time.sleep(10)
 
-    with open("anno.xml", "r") as f:
-        annotation_str = f.read()
-
     annotation_str = make_voc_annotations(
         ["helmet", "helmet"], [[179, 85, 231, 144], [112, 145, 135, 175]]
     )
@@ -83,6 +80,8 @@ def annotate(image_id, unique_id):
 
 if __name__ == "__main__":
 
+    start = time.perf_counter()
     unique_id = int(1000 * time.time())
     img_id = upload(unique_id)
     annotate(img_id, unique_id)
+    print(time.perf_counter() - start)
