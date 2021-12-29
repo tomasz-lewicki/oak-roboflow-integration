@@ -5,8 +5,9 @@ import cv2
 import depthai as dai
 import numpy as np
 
+from roboflow import RoboflowUploader
+
 BLOB_PATH = "mobilenet-ssd_openvino_2021.4_6shave.blob"
-SYNC = True
 LABELS = [
     "background",
     "aeroplane",
@@ -65,6 +66,15 @@ def make_pipeline():
     return pipeline
 
 
+def parse_dets(detections, confidence_thr=0.9):
+    dets_out = [
+        [300 * d.xmin, 300 * d.ymin, 300 * d.xmax, 300 * d.ymax]
+        for d in detections
+        if d.confidence > confidence_thr
+    ]
+    return dets_out
+
+
 # nn data (bounding box locations) are in <0..1> range - they need to be normalized with frame width/height
 def frameNorm(frame, bbox):
     normVals = np.full(len(bbox), frame.shape[0])
@@ -97,15 +107,6 @@ def displayFrame(name, frame, detections):
         cv2.rectangle(frame, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color, 2)
     # Show the frame
     cv2.imshow(name, frame)
-
-
-def parse_dets(detections):
-
-    for det in detections:
-        print(f"({det.xmin:0.2f} {det.ymin:0.2f})  ({det.xmax:0.2f} {det.ymax:0.2f}) ")
-
-        if det.confidence > 0.9:
-            print("good")
 
 
 def mainloop():
@@ -141,16 +142,29 @@ def mainloop():
 
             if inDet is not None:
                 detections = inDet.detections
-                parse_dets(detections)
-                counter += 1
+                bboxes = parse_dets(detections, confidence_thr=0)
+                print(bboxes)
 
             # If the frame is available, draw bounding boxes on it and show the frame
             if frame is not None:
-                displayFrame("rgb", frame, detections)
+
+                fname = "image" + str(int(1000 * time.time()))
+
+                # displayFrame("rgb", frame, detections)
+
+                img_id = uploader.upload_image(frame, fname)
+
+                uploader.upload_annotation(img_id, fname, ["helmet", "helmet"], bboxes)
 
             if cv2.waitKey(1) == ord("q"):
                 break
 
 
 if __name__ == "__main__":
+
+    uploader = RoboflowUploader(
+        dataset_name="oak-dataset",
+        api_key="vkIkZac3CXvp0RZ31B3f"
+    )
+
     mainloop()

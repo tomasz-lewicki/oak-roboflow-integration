@@ -7,7 +7,7 @@ import numpy as np
 import requests
 from PIL import Image
 
-from annotation import make_voc_annotations
+from annotations import make_voc_annotations
 
 class RoboflowUploader:
     # Thin wrapper over Roboflow's upload API
