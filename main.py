@@ -42,6 +42,9 @@ def make_pipeline():
     # Camera
     camRgb = pipeline.create(dai.node.ColorCamera)
     camRgb.setPreviewSize(300, 300)
+    camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_4_K)
+    camRgb.setPreviewKeepAspectRatio(False)
+
     camRgb.setInterleaved(False)
     camRgb.setFps(40)
 
