@@ -44,7 +44,6 @@ def make_pipeline():
     camRgb.setPreviewSize(300, 300)
     camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_4_K)
     camRgb.setPreviewKeepAspectRatio(False)
-
     camRgb.setInterleaved(False)
     camRgb.setFps(40)
 
@@ -65,7 +64,7 @@ def make_pipeline():
 
     # Link elements
     nn.passthrough.link(xoutRgb.input)
-    camRgb.preview.link(nn.input)
+    camRgb.preview.link(nn.input) # RGB buffer
     nn.out.link(nnOut.input)
 
     return pipeline
@@ -168,20 +167,29 @@ if __name__ == "__main__":
 
     with dai.Device(pipeline) as device:
 
-        qRgb = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
-        qDet = device.getOutputQueue(name="nn", maxSize=4, blocking=False)
+        queue_rgb = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
+        queue_dets = device.getOutputQueue(name="nn", maxSize=4, blocking=False)
+
+        # self.nnSyncSeq = min(map(lambda packet: packet.getSequenceNum(), qDet.values()))
 
         while True:
 
-            inRgb = qRgb.get()
-            inDet = qDet.get()
+            rgb_msg = queue_rgb.get() # instance of depthai.ImgFrame
+            det_msg = queue_dets.get() # instance of depthai.ImgDetections
+            # print(type(det_msg))
+
+            print(f"{rgb_msg.getSequenceNum()} {det_msg.getSequenceNum()} {det_msg.getTimestampDevice()}")
+            # print(dir(queue_dets))
+            # print(det_msg.getData())
+            # print(det_msg.getSequenceNum())
+            # print(det_msg.getTimestampDevice().total_seconds())
 
             # If queue not ready, skip iteration
-            if inRgb is None or inDet is None:
+            if rgb_msg is None or det_msg is None:
                 continue
 
-            frame = inRgb.getCvFrame()
-            detections = inDet.detections
+            frame = rgb_msg.getCvFrame()
+            detections = det_msg.detections
 
             # Display results
             frame_with_boxes = overlay_boxes(frame, detections)
