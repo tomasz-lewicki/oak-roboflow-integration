@@ -1,6 +1,7 @@
 import time
 import json
 from pathlib import Path
+from collections import deque, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 
 import cv2
@@ -64,7 +65,7 @@ def make_pipeline():
 
     # Link elements
     nn.passthrough.link(xoutRgb.input)
-    camRgb.preview.link(nn.input) # RGB buffer
+    camRgb.preview.link(nn.input)  # RGB buffer
     nn.out.link(nnOut.input)
 
     return pipeline
@@ -146,6 +147,33 @@ def upload_all(uploader, frame: np.ndarray, labels: list, bboxes: list, fname: s
     uploader.upload_annotation(img_id, fname=fname, labels=labels, bboxes=bboxes)
 
 
+def get_last_synced_pair(rgb_deque, dets_deque):
+    # Returns (frame, dets) with the highest available seq_n or (None, None) if no mach found.
+
+    # rgb_deque sorted by seq_n
+    rgb_deque_s = sorted(rgb_deque, key=lambda x: x[1], reverse=True)
+
+    # Dict mapping seq_n: dets
+    seq2dets = {seq_n: det for (det, seq_n) in dets_deque}
+
+    # ODict mapping {seq_n: (frame, dets)}. Ignores seq_n without dets
+    seq2frames_dets = OrderedDict(
+        (
+            (seq_n, (frame, seq2dets.get(seq_n)))
+            for frame, seq_n in rgb_deque_s
+            if seq2dets.get(seq_n) is not None
+        )
+    )
+
+    # Return matches if any exist
+    if len(seq2frames_dets) > 0:
+        frame, dets = list(seq2frames_dets.values())[0]
+    else:
+        frame, dets = None, None
+
+    return frame, dets
+
+
 if __name__ == "__main__":
 
     # Parse config
@@ -156,10 +184,15 @@ if __name__ == "__main__":
     detections = []
     WHITE = (255, 255, 255)
 
+    # Queues for detections and frames. Used for syncing frame<->detections pairs.
+    rgb_deque = deque(maxlen=10)
+    det_deque = deque(maxlen=10)
+
     # Wrapper around Roboflow upload/annotate API
     uploader = RoboflowUploader(dataset_name=DATASET, api_key=API_KEY)
 
     # Executor to handle uploads asynchronously
+    # For real-time uploads at ~10Hz we spawn 40 threads
     executor = ThreadPoolExecutor(max_workers=40)
 
     # DAI pipeline
@@ -174,25 +207,25 @@ if __name__ == "__main__":
 
         while True:
 
-            rgb_msg = queue_rgb.get() # instance of depthai.ImgFrame
-            det_msg = queue_dets.get() # instance of depthai.ImgDetections
-            # print(type(det_msg))
+            rgb_msg = queue_rgb.get()  # instance of depthai.ImgFrame
+            det_msg = queue_dets.get()  # instance of depthai.ImgDetections
 
-            print(f"{rgb_msg.getSequenceNum()} {det_msg.getSequenceNum()} {det_msg.getTimestampDevice()}")
-            # print(dir(queue_dets))
-            # print(det_msg.getData())
-            # print(det_msg.getSequenceNum())
-            # print(det_msg.getTimestampDevice().total_seconds())
+            # Obtain sequence numbers to sync frames
+            rgb_seq = rgb_msg.getSequenceNum()
+            det_seq = det_msg.getSequenceNum()
 
-            # If queue not ready, skip iteration
-            if rgb_msg is None or det_msg is None:
-                continue
+            # Get frame and dets
+            frame = rgb_msg.getCvFrame()  # np.ndarray / BGR CV Mat
+            dets = det_msg.detections  # list of depthai.ImgDetection
 
-            frame = rgb_msg.getCvFrame()
-            detections = det_msg.detections
+            # Put (object, seq_n) tuples in a queue
+            rgb_deque.append((frame, rgb_seq))
+            det_deque.append((dets, det_seq))
+
+            frame, dets = get_last_synced_pair(rgb_deque, det_deque)
 
             # Display results
-            frame_with_boxes = overlay_boxes(frame, detections)
+            frame_with_boxes = overlay_boxes(frame, dets)
             cv2.imshow("Roboflow Demo", frame_with_boxes)
 
             # Handle user input
@@ -203,7 +236,7 @@ if __name__ == "__main__":
                 exit()
             elif key == 13:
                 # Enter -> upload to Roboflow
-                labels, bboxes = parse_dets(detections, confidence_thr=UPLOAD_THR)
+                labels, bboxes = parse_dets(dets, confidence_thr=UPLOAD_THR)
                 print("Uploading grabbed frame!")
                 executor.submit(
                     upload_all, uploader, frame, labels, bboxes, int(1000 * time.time())
