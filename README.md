@@ -23,12 +23,12 @@ pip3 install -r requirements.txt
 
 4. Run the code with your `API key` and `dataset name`:
 ```shell
-python3 main.py --dataset oak-dataset2 --api_key vkIkZac3CXvp0RZ31B3f
+python3 main.py --dataset oak-dataset --api_key vkIkZac3CXvp0RZ31B3f
 ```
 - Press `enter` to capture and upload frames with annotations.
 - Press `q` to exit
 
 5. Experiment with optional cmd arguments for auto-uploading `--autoupload_threshold` and `--autoupload_interval`.  For example, to automatically upload annotations with confidence above `0.6` every `0.5` do:
 ```shell
-python3 main.py --dataset oak-dataset2 --api_key vkIkZac3CXvp0RZ31B3f --autoupload_threshold 0.6 --autoupload_interval 0.5
+python3 main.py --dataset oak-dataset --api_key vkIkZac3CXvp0RZ31B3f --autoupload_threshold 0.6 --autoupload_interval 0.5
 ```
