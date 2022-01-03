@@ -1,5 +1,7 @@
 import time
 import json
+import argparse
+
 from pathlib import Path
 from collections import deque, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
@@ -10,7 +12,7 @@ import numpy as np
 
 from utils.roboflow import RoboflowUploader
 
-BLOB_PATH = "models/mobilenet-ssd_openvino_2021.4_6shave.blob"
+BLOB_PATH = "models/mobilenet-ssd_openvino_2021.4_5shave.blob"
 LABELS = [
     "background",
     "aeroplane",
@@ -71,16 +73,26 @@ def make_pipeline():
     return pipeline
 
 
-def get_config():
+def parse_cmd_args():
 
-    with open("config.json") as f:
-        config = json.loads(f.read())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--api_key", help="Roboflow API key")
+    parser.add_argument("--dataset", help="Roboflow dataset ID")
+    parser.add_argument(
+        "--autoupload_threshold",
+        help="Upload only the bounding boxex above certain threshold. Threshold of 0.5 set by default.",
+        default=0.5,
+        type=float,
+    )
+    parser.add_argument(
+        "--autoupload_interval",
+        help="Auto-upload images every `autoupload_interval` seconds. Infinite interval (no auto-upload) set by default.",
+        default=float("inf"),
+        type=float,
+    )
+    config = parser.parse_args()
 
-    UPLOAD_THR = config["upload_threshold"]
-    DATASET = config["dataset"]
-    API_KEY = config["api_key"]
-
-    return (DATASET, API_KEY, UPLOAD_THR)
+    return config
 
 
 def parse_dets(detections, confidence_thr=0.8):
@@ -177,14 +189,19 @@ def get_last_synced_pair(rgb_deque, dets_deque):
 if __name__ == "__main__":
 
     # Parse config
-    (DATASET, API_KEY, UPLOAD_THR) = get_config()
+    config = parse_cmd_args()
+
+    UPLOAD_THR = config.autoupload_threshold
+    DATASET = config.dataset
+    API_KEY = config.api_key
 
     # Initialize variables
     frame = None
     detections = []
+    last_upload_ts = time.monotonic()
     WHITE = (255, 255, 255)
 
-    # Queues for detections and frames. Used for syncing frame<->detections pairs.
+    # Deques for detections and frames. Used for syncing frame<->detections pairs.
     rgb_deque = deque(maxlen=10)
     det_deque = deque(maxlen=10)
 
@@ -203,7 +220,7 @@ if __name__ == "__main__":
         queue_rgb = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         queue_dets = device.getOutputQueue(name="nn", maxSize=4, blocking=False)
 
-        # self.nnSyncSeq = min(map(lambda packet: packet.getSequenceNum(), qDet.values()))
+        print("Press 'enter' to upload annotated image to Roboflow. Press 'q' to exit.")
 
         while True:
 
@@ -228,16 +245,40 @@ if __name__ == "__main__":
             frame_with_boxes = overlay_boxes(frame, dets)
             cv2.imshow("Roboflow Demo", frame_with_boxes)
 
+            # Time from last upload in seconds
+            dt = time.monotonic() - last_upload_ts
+
             # Handle user input
             key = cv2.waitKey(1)
 
             if key == ord("q"):
-                # q -> exit
+                # q pressed
                 exit()
             elif key == 13:
-                # Enter -> upload to Roboflow
-                labels, bboxes = parse_dets(dets, confidence_thr=UPLOAD_THR)
-                print("Uploading grabbed frame!")
+                # If enter is pressed, upload all dets without thresholding
+                labels, bboxes = parse_dets(dets, confidence_thr=0.0)
+                print("INFO: Enter pressed. Uploading grabbed frame!")
                 executor.submit(
                     upload_all, uploader, frame, labels, bboxes, int(1000 * time.time())
                 )
+            elif dt > config.autoupload_interval:
+                # Auto-upload annotations with confidence above UPLOAD_THR every `autoupload_interval` seconds
+                labels, bboxes = parse_dets(dets, confidence_thr=UPLOAD_THR)
+
+                if len(bboxes) > 0:
+                    print(
+                        f"INFO: Auto-uploading grabbed frame with {len(bboxes)} annotations!"
+                    )
+                    executor.submit(
+                        upload_all,
+                        uploader,
+                        frame,
+                        labels,
+                        bboxes,
+                        int(1000 * time.time()),
+                    )
+                    last_upload_ts = time.monotonic()
+                else:
+                    pass
+                    # No detections. Could add a debug message here:
+                    # print(f"DEBUG: No detections with confidence above {UPLOAD_THR}. Not uploading!")

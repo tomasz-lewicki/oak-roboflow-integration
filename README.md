@@ -20,21 +20,20 @@ pip3 install -r requirements.txt
 3. Setup Roboflow account
 - Get API key ([app.roboflow.com](https://app.roboflow.com/) -> `settings` -> `workspaces` -> `Roboflow API` -> Copy private API key)
 - Create new (empty) project at [app.roboflow.com](https://app.roboflow.com/). Then copy the project's (a.k.a. dataset's) name.
-- Paste the copied `api_key` and `dataset` to [config.json](https://github.com/tomek-l/oak-roboflow-integration/blob/master/config.json), similarly to the example below:
 
-```json
-{
-    "dataset": "oak-dataset2",
-    "api_key": "vkIkZac3CXvp0RZ31B3f",
-    "upload_threshold": 0.8
-}
+4. Run the code with your `API key` and `dataset name`:
+```shell
+python3 main.py --dataset oak-dataset2 --api_key vkIkZac3CXvp0RZ31B3f
 ```
-
-4. Run the code!
-```python
-python3 main.py
-```
-
 - Press `enter` to capture and upload frames.
 - Press `q` to exit
-- Adjust `upload_threshold` to upload anntotations at a different threshold.
+
+5. Experiment with optional cmd arguments.
+
+For example in the command below:
+```shell
+python3 main.py --dataset oak-dataset2 --api_key vkIkZac3CXvp0RZ31B3f --upload_threshold 0.6 --autoupload_interval_s 0.5
+```
+
+- Change of `upload_threshold` value causes only objects with confidence score above `0.6` to be uploaded to Roboflow.
+- Adding `autoupload_interval_s` argument will automatically upload an annotated image every `0.5` seconds.

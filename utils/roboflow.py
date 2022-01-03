@@ -58,9 +58,9 @@ class RoboflowUploader:
 
         # Print debug info
         if r.status_code == 200:
-            print(f"Info: Uploaded image with ID: {img_id}")
+            print(f"INFO: Uploaded image with ID: {img_id}")
         else:
-            print(f"Error: Failed to upload image. HTTP status: {r.status_code}")
+            print(f"ERROR: Failed to upload image. HTTP status: {r.status_code}")
             print(r.json())
 
         return img_id
@@ -88,9 +88,9 @@ class RoboflowUploader:
         )
 
         if r.status_code == 200:
-            print(f"Info: Uploaded annotation for image ID: {image_id}")
+            print(f"INFO: Uploaded annotation for image ID: {image_id}")
         else:
-            print(f"Error: failed annotation for image ID: {image_id}")
+            print(f"ERROR: failed annotation for image ID: {image_id}")
 
 
 if __name__ == "__main__":
