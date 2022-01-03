@@ -77,7 +77,7 @@ class RoboflowUploader:
         upload_url = "".join(
             [
                 f"https://api.roboflow.com/dataset/{self._dataset_name}/annotate/{image_id}",
-                f"?api_key=vkIkZac3CXvp0RZ31B3f",
+                f"?api_key={self._api_key}",
                 f"&name={fname}.xml",
             ]
         )
@@ -91,6 +91,7 @@ class RoboflowUploader:
             print(f"INFO: Uploaded annotation for image ID: {image_id}")
         else:
             print(f"ERROR: failed annotation for image ID: {image_id}")
+            print(r.json())
 
 
 if __name__ == "__main__":
