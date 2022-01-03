@@ -25,15 +25,10 @@ pip3 install -r requirements.txt
 ```shell
 python3 main.py --dataset oak-dataset2 --api_key vkIkZac3CXvp0RZ31B3f
 ```
-- Press `enter` to capture and upload frames.
+- Press `enter` to capture and upload frames with annotations.
 - Press `q` to exit
 
-5. Experiment with optional cmd arguments.
-
-For example in the command below:
+5. Experiment with optional cmd arguments for auto-uploading `--autoupload_threshold` and `--autoupload_interval`.  For example, to automatically upload annotations with confidence above `0.6` every `0.5` do:
 ```shell
-python3 main.py --dataset oak-dataset2 --api_key vkIkZac3CXvp0RZ31B3f --upload_threshold 0.6 --autoupload_interval_s 0.5
+python3 main.py --dataset oak-dataset2 --api_key vkIkZac3CXvp0RZ31B3f --autoupload_threshold 0.6 --autoupload_interval 0.5
 ```
-
-- Change of `upload_threshold` value causes only objects with confidence score above `0.6` to be uploaded to Roboflow.
-- Adding `autoupload_interval_s` argument will automatically upload an annotated image every `0.5` seconds.
